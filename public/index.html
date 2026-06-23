@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chess Multiplayer</title>
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>♟️ Chess Multiplayer</h1>
+
+    <div class="card">
+      <h2>Create a New Game</h2>
+      <button id="createBtn">Create Game</button>
+    </div>
+
+    <div class="card">
+      <h2>Join a Game</h2>
+      <input type="text" id="roomInput" placeholder="Enter Room ID" />
+      <button id="joinBtn">Join Game</button>
+    </div>
+
+    <p id="message"></p>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on("connect", () => {
+      document.getElementById("message").textContent = "✅ Connected to server";
+    });
+
+    document.getElementById("createBtn").addEventListener("click", () => {
+      socket.emit("create-game");
+    });
+
+    socket.on("game-created", ({ roomId }) => {
+      window.location.href = `/game?room=${roomId}&color=white`;
+    });
+
+    document.getElementById("joinBtn").addEventListener("click", () => {
+      const roomId = document.getElementById("roomInput").value.trim();
+      if (!roomId) return alert("Room ID daalo!");
+      socket.emit("join-game", { roomId });
+    });
+
+    socket.on("game-joined", ({ roomId }) => {
+      window.location.href = `/game?room=${roomId}&color=black`;
+    });
+
+    socket.on("error-message", ({ message }) => {
+      document.getElementById("message").textContent = `❌ ${message}`;
+    });
+  </script>
+</body>
+</html>

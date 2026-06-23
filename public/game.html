@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chess — Game</title>
+  <link rel="stylesheet" href="/css/game.css" />
+</head>
+<body>
+  <div class="layout">
+
+    <div class="sidebar left">
+      <div class="brand">♟ Chess</div>
+      <div class="room-info">
+        <span class="label">Room ID</span>
+        <span class="room-id" id="roomIdDisplay">—</span>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+      <div class="player-card opponent">
+        <div class="player-avatar">♚</div>
+        <div class="player-info">
+          <span class="player-name">Opponent</span>
+          <span class="player-color" id="opponentColor">—</span>
+        </div>
+        <div class="player-status" id="opponentStatus">Waiting...</div>
+      </div>
+      <div class="player-card you">
+        <div class="player-avatar">♔</div>
+        <div class="player-info">
+          <span class="player-name">You</span>
+          <span class="player-color" id="yourColor">—</span>
+        </div>
+        <div class="player-status active">Online</div>
+      </div>
+    </div>
+
+    <div class="board-section">
+      <div class="game-status" id="gameStatus">Waiting for opponent...</div>
+      <div class="board-wrap">
+        <div id="board"></div>
+      </div>
+      <div class="turn-indicator" id="turnIndicator">—</div>
+    </div>
+
+    <div class="sidebar right">
+      <div class="moves-header">
+        <span>Move History</span>
+      </div>
+      <div class="moves-list" id="movesList"></div>
+      <div class="game-controls">
+        <button class="btn-danger" id="resignBtn">Resign</button>
+      </div>
+      <div class="connection-status">
+        <div class="status-dot connected" id="connDot"></div>
+        <span id="connText">Connected</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/game.js"></script>
+</body>
+</html>
