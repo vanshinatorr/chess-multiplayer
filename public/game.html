@@ -3,59 +3,222 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chess — Game</title>
+  <title>Kingside — Chess Arena</title>
   <link rel="stylesheet" href="/css/game.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
-<body>
-  <div class="layout">
+<body class="theme-classic">
+  <div class="background-glow"></div>
 
-    <div class="sidebar left">
-      <div class="brand">♟ Chess</div>
-      <div class="room-info">
-        <span class="label">Room ID</span>
-        <span class="room-id" id="roomIdDisplay">—</span>
-        <button class="copy-btn" id="copyBtn">Copy</button>
+  <div class="layout animate-fade-in">
+    
+    <!-- LEFT SIDEBAR: Players and Room Info -->
+    <aside class="sidebar left-sidebar">
+      <div class="brand">
+        <span class="brand-logo">♟</span>
+        <span class="brand-text">Kingside</span>
       </div>
-      <div class="player-card opponent">
-        <div class="player-avatar">♚</div>
-        <div class="player-info">
-          <span class="player-name">Opponent</span>
-          <span class="player-color" id="opponentColor">—</span>
+
+      <div class="room-card">
+        <span class="label">Arena Code</span>
+        <div class="room-id-row">
+          <span class="room-id" id="roomIdDisplay">—</span>
+          <button class="icon-btn" id="copyBtn" title="Copy Room ID">📋</button>
         </div>
-        <div class="player-status" id="opponentStatus">Waiting...</div>
       </div>
-      <div class="player-card you">
-        <div class="player-avatar">♔</div>
-        <div class="player-info">
-          <span class="player-name">You</span>
-          <span class="player-color" id="yourColor">—</span>
+
+      <div class="players-column">
+        <!-- OPPONENT CARD -->
+        <div class="player-panel opponent" id="opponentPanel">
+          <div class="player-header">
+            <div class="avatar-wrap">
+              <span class="player-avatar" id="opponentAvatar">♚</span>
+              <div class="active-pulse"></div>
+            </div>
+            <div class="player-identity">
+              <span class="player-name" id="opponentName">Opponent</span>
+              <span class="player-color-badge" id="opponentColorBadge">—</span>
+            </div>
+            <span class="status-tag disconnected" id="opponentStatus">Waiting</span>
+          </div>
+          
+          <div class="captured-row" id="opponentCaptured">
+            <!-- Captured white pieces go here -->
+          </div>
+
+          <div class="timer-box" id="opponentTimerBox">
+            <span class="timer-digits" id="opponentClock">--:--</span>
+          </div>
         </div>
-        <div class="player-status active">Online</div>
-      </div>
-    </div>
 
-    <div class="board-section">
-      <div class="game-status" id="gameStatus">Waiting for opponent...</div>
-      <div class="board-wrap">
-        <div id="board"></div>
-      </div>
-      <div class="turn-indicator" id="turnIndicator">—</div>
-    </div>
+        <div class="versus-divider">vs</div>
 
-    <div class="sidebar right">
-      <div class="moves-header">
-        <span>Move History</span>
+        <!-- PLAYER CARD -->
+        <div class="player-panel you" id="yourPanel">
+          <div class="player-header">
+            <div class="avatar-wrap">
+              <span class="player-avatar" id="yourAvatar">♔</span>
+              <div class="active-pulse"></div>
+            </div>
+            <div class="player-identity">
+              <span class="player-name">You</span>
+              <span class="player-color-badge" id="yourColorBadge">—</span>
+            </div>
+            <span class="status-tag" id="yourStatus">Online</span>
+          </div>
+
+          <div class="captured-row" id="yourCaptured">
+            <!-- Captured black pieces go here -->
+          </div>
+
+          <div class="timer-box" id="yourTimerBox">
+            <span class="timer-digits" id="yourClock">--:--</span>
+          </div>
+        </div>
       </div>
-      <div class="moves-list" id="movesList"></div>
-      <div class="game-controls">
-        <button class="btn-danger" id="resignBtn">Resign</button>
+    </aside>
+
+    <!-- CENTER SECTION: The Chessboard -->
+    <main class="board-section">
+      <div class="board-header">
+        <div class="game-status-bubble" id="gameStatus">Waiting for connection...</div>
+        <button class="btn-action btn-outline btn-hint" id="hintBtn" style="display: none;" title="Get AI Hint">💡 Hint</button>
+        <div class="material-balance" id="materialBalance"></div>
       </div>
-      <div class="connection-status">
-        <div class="status-dot connected" id="connDot"></div>
+
+      <div class="board-outer-container">
+        <!-- Real-time dynamic evaluation bar -->
+        <div class="eval-bar-container" id="evalBarContainer">
+          <div class="eval-bar-fill" id="evalBarFill"></div>
+          <span class="eval-bar-text" id="evalBarText">0.0</span>
+        </div>
+        <div class="board-wrap" style="position: relative;">
+          <div id="board"></div>
+          <!-- Pawn Promotion Panel Overlay -->
+          <div class="promotion-overlay" id="promotionOverlay" style="display: none;">
+            <div class="promotion-choices">
+              <button class="promo-choice-btn" data-piece="q" title="Queen">♛</button>
+              <button class="promo-choice-btn" data-piece="r" title="Rook">♜</button>
+              <button class="promo-choice-btn" data-piece="b" title="Bishop">♝</button>
+              <button class="promo-choice-btn" data-piece="n" title="Knight">♞</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="board-footer">
+        <div class="turn-indicator-card" id="turnIndicatorCard">
+          <span class="turn-dot"></span>
+          <span class="turn-text" id="turnIndicator">Connecting...</span>
+        </div>
+      </div>
+
+      <!-- History Timeline Review Banner -->
+      <div class="timeline-banner" id="timelineBanner" style="display: none;">
+        <span class="timeline-alert">⏳ Historical Position Review</span>
+        <button class="btn-action btn-outline btn-timeline-live" id="timelineLiveBtn">Return to Live</button>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: Moves List, Chat, Options -->
+    <aside class="sidebar right-sidebar">
+      
+      <!-- Theme Switcher -->
+      <div class="control-group">
+        <span class="label">Board Aesthetics</span>
+        <div class="theme-picker-row">
+          <button class="theme-dot classic active" data-theme="classic" title="Classic Green"></button>
+          <button class="theme-dot wood" data-theme="wood" title="Dark Wood"></button>
+          <button class="theme-dot slate" data-theme="slate" title="Midnight Slate"></button>
+          <button class="theme-dot neon" data-theme="neon" title="Synthwave Neon"></button>
+        </div>
+      </div>
+
+      <!-- Piece Set Switcher -->
+      <div class="control-group">
+        <span class="label">Piece Set Style</span>
+        <div class="select-wrapper">
+          <select id="pieceSetSelect" class="piece-set-select">
+            <option value="cburnett" selected>Cburnett (Default)</option>
+            <option value="merida">Merida (Classic)</option>
+            <option value="alpha">Alpha (Flat)</option>
+            <option value="staunty">Staunty (Modern)</option>
+            <option value="fantasy">Fantasy (Medieval)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Volume Toggler & Slider -->
+      <div class="control-group">
+        <span class="label">Audio Volume</span>
+        <div class="volume-slider-row">
+          <button class="volume-mute-btn" id="volumeMuteBtn" title="Mute/Unmute">🔊</button>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.5" class="volume-slider" />
+        </div>
+      </div>
+
+      <!-- Sound Pack Switcher -->
+      <div class="control-group">
+        <span class="label">Sound Effects Pack</span>
+        <div class="select-wrapper">
+          <select id="soundPackSelect" class="piece-set-select">
+            <option value="classic" selected>Classic Wood</option>
+            <option value="retro">Retro Arcade (8-Bit)</option>
+            <option value="cyber">Cyber Sci-Fi (Laser)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Moves List Panel -->
+      <div class="panel-section moves-panel">
+        <div class="panel-header">
+          <span>📜 Move Ledger</span>
+        </div>
+        <div class="moves-list-scroll" id="movesList">
+          <!-- Move list rows -->
+        </div>
+      </div>
+
+      <!-- Chat Panel -->
+      <div class="panel-section chat-panel">
+        <div class="panel-header">
+          <span>💬 Battle Chat</span>
+        </div>
+        <div class="chat-log" id="chatLog">
+          <div class="chat-system">Welcome to the Chess Arena! Chat messages will appear here.</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Send a message..." autocomplete="off" />
+          <button id="sendChatBtn" class="chat-send-btn">➔</button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-footer">
+        <div class="button-split">
+          <button class="btn-action btn-outline" id="drawBtn" disabled>Offer Draw</button>
+          <button class="btn-action btn-danger" id="resignBtn" disabled>Resign</button>
+        </div>
+      </div>
+
+      <div class="connection-pill">
+        <div class="dot connected" id="connDot"></div>
         <span id="connText">Connected</span>
       </div>
-    </div>
 
+    </aside>
+
+  </div>
+
+  <!-- Reconnection Modal Notification -->
+  <div class="reconnect-banner" id="reconnectBanner">
+    <div class="reconnect-content">
+      <div class="reconnect-spinner"></div>
+      <div class="reconnect-details">
+        <h4>Connection Interrupted</h4>
+        <p id="reconnectCountdown">Opponent disconnected! Waiting 30s for them to rejoin...</p>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

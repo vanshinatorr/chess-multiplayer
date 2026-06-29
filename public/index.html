@@ -3,56 +3,534 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chess Multiplayer</title>
+  <title>Kingside — Premium Real-time Chess Platform</title>
   <link rel="stylesheet" href="/css/main.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="container">
-    <h1>♟️ Chess Multiplayer</h1>
+  <!-- Floating Chess Decor -->
+  <div class="decorations">
+    <div class="float-piece p1">♟</div>
+    <div class="float-piece p2">♞</div>
+    <div class="float-piece p3">♜</div>
+    <div class="float-piece p4">♛</div>
+    <div class="float-piece p5">♝</div>
+  </div>
+  <div class="background-glow"></div>
+  
+  <div class="app-wrapper">
+    
+    <!-- Top Nav Header -->
+    <header class="navbar animate-slide-up" style="animation-delay: 0.05s;">
+      <div class="brand">
+        <span class="logo-shield">♛</span>
+        <span class="brand-text">Kingside</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#features" class="nav-item">Features</a>
+        <a href="#" class="nav-item" id="navFaqLink">FAQ</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="server-status">
+          <div class="status-dot" id="lobbyDot"></div>
+          <span class="status-text" id="lobbyStatus">Connecting...</span>
+        </div>
+        <button class="btn-secondary" id="loginBtn" onclick="playSuccessSound()">Console login</button>
+      </div>
+    </header>
 
-    <div class="card">
-      <h2>Create a New Game</h2>
-      <button id="createBtn">Create Game</button>
+    <!-- Main Hero Split Layout -->
+    <section class="hero-split">
+      
+      <!-- Hero Copy -->
+      <div class="hero-info animate-slide-up" style="animation-delay: 0.1s;">
+        <span class="badge-new">Version 2.0 Live</span>
+        <h2 class="hero-title">CHESS <br><span>RE-ENGINEERED.</span></h2>
+        <p class="hero-desc">
+          Lag-free multiplayer matchmaking. Real-time centipawn board analytics. Dynamic vector style customizer. Battle human minds or test your strategy against minimax intelligence.
+        </p>
+
+        <!-- Stats Block -->
+        <div class="hero-stats-row">
+          <div class="hero-stats">
+            <div class="stat-card">
+              <span class="stat-num" id="statWins">0</span>
+              <span class="stat-lbl">Wins</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="statLosses">0</span>
+              <span class="stat-lbl">Losses</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="statDraws">0</span>
+              <span class="stat-lbl">Draws</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="statRate">0%</span>
+              <span class="stat-lbl">Win Rate</span>
+            </div>
+          </div>
+
+          <!-- Board Graphic Preview widget -->
+          <div class="hero-board-preview">
+            <div class="mini-board">
+              <div class="mini-sq l">♞</div><div class="mini-sq d"></div><div class="mini-sq l"></div><div class="mini-sq d">♚</div>
+              <div class="mini-sq d"></div><div class="mini-sq l">♟</div><div class="mini-sq d"></div><div class="mini-sq l"></div>
+              <div class="mini-sq l"></div><div class="mini-sq d"></div><div class="mini-sq l">♙</div><div class="mini-sq d"></div>
+              <div class="mini-sq d">♔</div><div class="mini-sq l"></div><div class="mini-sq d"></div><div class="mini-sq l">♖</div>
+            </div>
+            <div class="mini-board-caption">Interactive 3D Visualizer</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Panel Console -->
+      <div class="hero-console animate-slide-up" style="animation-delay: 0.2s;">
+        <div class="card main-card">
+          <div class="tab-selectors">
+            <button class="tab-btn active" id="tabOnlineBtn">⚔️ Online Arena</button>
+            <button class="tab-btn" id="tabAIBtn">🤖 Practice vs AI</button>
+          </div>
+
+          <!-- MULTIPLAYER MODE WRAPPER -->
+          <div id="multiplayerSection">
+            <div class="form-group">
+              <label class="input-label">Arena Clocks</label>
+              <div class="pill-selectors" id="timeControlSelect">
+                <button class="pill-btn active" data-time="3">3 min (Blitz)</button>
+                <button class="pill-btn" data-time="5">5 min (Blitz)</button>
+                <button class="pill-btn" data-time="10">10 min (Rapid)</button>
+                <button class="pill-btn" data-time="30">30 min (Classical)</button>
+                <button class="pill-btn" data-time="0">Unlimited</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMPUTER AI MODE WRAPPER -->
+          <div id="computerSection" style="display: none;">
+            <div class="form-group">
+              <label class="input-label">AI Engine Level</label>
+              <div class="pill-selectors" id="difficultySelect">
+                <button class="pill-btn active" data-level="easy">Easy (Lvl 1)</button>
+                <button class="pill-btn" data-level="medium">Medium (Lvl 2)</button>
+                <button class="pill-btn" data-level="hard">Hard (Lvl 3)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SHARED SIDE SELECTOR -->
+          <div class="form-group">
+            <label class="input-label">Preferred Side</label>
+            <div class="side-selector" id="sideSelect">
+              <button class="side-btn active" data-side="white" title="Play as White">
+                <span class="side-icon">♔</span>
+                <span class="side-name">White</span>
+              </button>
+              <button class="side-btn" data-side="random" title="Random Color">
+                <span class="side-icon">☯</span>
+                <span class="side-name">Random</span>
+              </button>
+              <button class="side-btn" data-side="black" title="Play as Black">
+                <span class="side-icon" style="color: #555;">♚</span>
+                <span class="side-name">Black</span>
+              </button>
+            </div>
+          </div>
+
+          <button id="actionBtn" class="btn-primary">Create Room & Invite</button>
+
+          <!-- JOIN CONTAINER -->
+          <div id="joinCardContainer">
+            <div class="divider">
+              <span>Or join an existing arena</span>
+            </div>
+            <div class="join-row">
+              <input type="text" id="roomInput" placeholder="Enter 6-digit Room ID" maxlength="6" autocomplete="off" />
+              <button id="joinBtn" class="btn-secondary">Join Match</button>
+            </div>
+          </div>
+
+          <p id="message"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Professional SaaS Features Showcase -->
+    <section class="features-section animate-slide-up" id="features" style="animation-delay: 0.25s;">
+      <h3 class="section-title">Console Features</h3>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feat-icon">⚔️</div>
+          <h4>Live Battle Engine</h4>
+          <p>Synchronized clock ticking, live connection tracking, 30s re-join grace periods, and instant match chats.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🤖</div>
+          <h4>Practice AI Engine</h4>
+          <p>Test strategy variations against depth-3 minimax heuristics. Toggle difficulty states dynamically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">📈</div>
+          <h4>Real-time Eval Bar</h4>
+          <p>Centipawn-based advantage charts update instantly after moves, showing clear positional evaluations.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🎨</div>
+          <h4>Custom Themes</h4>
+          <p>Choose green, slate, wood, or neon board layouts alongside 5 standard high-fidelity vector piece sets.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multi-column Corporate Footer -->
+    <footer class="saas-footer animate-slide-up" style="animation-delay: 0.35s;">
+      <div class="footer-grid">
+        <div class="footer-col brand-col">
+          <div class="brand">
+            <span class="logo-shield">♛</span>
+            <span class="brand-text">Kingside</span>
+          </div>
+          <p class="footer-tagline">Advanced real-time chess matchmaking & training console.</p>
+        </div>
+        <div class="footer-col">
+          <h5>Product</h5>
+          <a href="#">Lobby Dashboard</a>
+          <a href="#features">Console Features</a>
+          <a href="/game?room=practice_sandbox&mode=ai">AI Sandbox</a>
+        </div>
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <a href="https://cdnjs.com/libraries/chess.js" target="_blank">Chess.js Lib</a>
+          <a href="https://lichess.org/api" target="_blank">Lichess CDN</a>
+          <a href="https://socket.io/docs/v4/" target="_blank">Socket.io API</a>
+          <a href="#" id="footerFaqLink">Knowledgebase FAQs</a>
+        </div>
+        <div class="footer-col">
+          <h5>Legal</h5>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">GDPR & Security</a>
+          <a href="#">Security Audits</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Kingside Chess Console. Built under strict SaaS standards. All rights reserved.</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Interactive FAQ Glassmorphic Modal Overlay -->
+  <div class="modal-overlay" id="faqModal" style="display: none;">
+    <div class="faq-modal-box">
+      <div class="faq-modal-header">
+        <h3>Frequently Asked Questions</h3>
+        <button class="faq-modal-close" id="closeFaqBtn">×</button>
+      </div>
+      <div class="faq-accordion">
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>How does the real-time Evaluation Bar work?</span>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>The evaluation bar uses our built-in position engine to score the board state in real time. It analyzes piece counts, pawn structures, center control, and king safety. The numerical value is rendered in standard chess centipawns where +1.0 represents a one-pawn advantage for White.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Can I invite friends to spectate my game?</span>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>Yes! If two players are already active in the game room, any additional players joining using the same 6-digit room code will automatically enter as spectators. They can view the game in real time and converse in the battle chat.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Is the minimax practice bot running on the server?</span>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>No, the AI is completely compiled and executed in your browser tab. This reduces network overhead, guaranteeing zero-lag thinking pauses and permitting completely offline practicing if you lose connection to the internet.</p>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <div class="card">
-      <h2>Join a Game</h2>
-      <input type="text" id="roomInput" placeholder="Enter Room ID" />
-      <button id="joinBtn">Join Game</button>
-    </div>
-
-    <p id="message"></p>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    let selectedMode = "online";
+    let selectedTime = "3";
+    let selectedAILevel = "easy";
+    let selectedSide = "white";
 
-    socket.on("connect", () => {
-      document.getElementById("message").textContent = "✅ Connected to server";
+    // --- SATISFYING LOBBY SYNTHESIZER ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playHoverSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      const now = audioCtx.currentTime;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      gain.gain.setValueAtTime(0.02, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      
+      osc.start(now);
+      osc.stop(now + 0.03);
+    }
+
+    function playClickSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      const now = audioCtx.currentTime;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      
+      osc.start(now);
+      osc.stop(now + 0.06);
+    }
+
+    function playSuccessSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      const now = audioCtx.currentTime;
+      osc.type = 'sine';
+      
+      osc.frequency.setValueAtTime(440, now); // A4
+      osc.frequency.setValueAtTime(554.37, now + 0.08); // C#5
+      osc.frequency.setValueAtTime(659.25, now + 0.16); // E5
+      osc.frequency.setValueAtTime(880, now + 0.24); // A5
+      
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      
+      osc.start(now);
+      osc.stop(now + 0.5);
+    }
+
+    // Attach satisfying audio hover/clicks to controls
+    function attachAudios(elements) {
+      elements.forEach(el => {
+        el.addEventListener("mouseenter", playHoverSound);
+        el.addEventListener("click", playClickSound);
+      });
+    }
+
+    // Bind DOM refs
+    const tabOnlineBtn = document.getElementById("tabOnlineBtn");
+    const tabAIBtn = document.getElementById("tabAIBtn");
+    const multiplayerSection = document.getElementById("multiplayerSection");
+    const computerSection = document.getElementById("computerSection");
+    const joinCardContainer = document.getElementById("joinCardContainer");
+    const actionBtn = document.getElementById("actionBtn");
+    const joinBtn = document.getElementById("joinBtn");
+    const roomInput = document.getElementById("roomInput");
+    
+    // FAQ overlay modal DOM refs
+    const faqModal = document.getElementById("faqModal");
+    const navFaqLink = document.getElementById("navFaqLink");
+    const footerFaqLink = document.getElementById("footerFaqLink");
+    const closeFaqBtn = document.getElementById("closeFaqBtn");
+
+    // Initialize list bindings
+    attachAudios([tabOnlineBtn, tabAIBtn, actionBtn, joinBtn, navFaqLink, footerFaqLink, closeFaqBtn]);
+    attachAudios(document.querySelectorAll("#timeControlSelect .pill-btn"));
+    attachAudios(document.querySelectorAll("#difficultySelect .pill-btn"));
+    attachAudios(document.querySelectorAll("#sideSelect .side-btn"));
+    attachAudios(document.querySelectorAll(".saas-footer a"));
+    attachAudios(document.querySelectorAll(".nav-item"));
+    
+    roomInput.addEventListener("focus", playClickSound);
+    roomInput.addEventListener("input", playHoverSound);
+
+    // Initialize stats from LocalStorage
+    function loadStats() {
+      const stats = JSON.parse(localStorage.getItem("kingside_stats")) || { wins: 0, losses: 0, draws: 0 };
+      document.getElementById("statWins").textContent = stats.wins;
+      document.getElementById("statLosses").textContent = stats.losses;
+      document.getElementById("statDraws").textContent = stats.draws;
+      
+      const total = stats.wins + stats.losses + stats.draws;
+      const rate = total > 0 ? Math.round((stats.wins / total) * 100) : 0;
+      document.getElementById("statRate").textContent = `${rate}%`;
+    }
+    loadStats();
+
+    // Tab toggling
+    tabOnlineBtn.addEventListener("click", () => {
+      selectedMode = "online";
+      tabOnlineBtn.classList.add("active");
+      tabAIBtn.classList.remove("active");
+      multiplayerSection.style.display = "block";
+      computerSection.style.display = "none";
+      joinCardContainer.style.display = "block";
+      actionBtn.textContent = "Create Room & Invite";
     });
 
-    document.getElementById("createBtn").addEventListener("click", () => {
-      socket.emit("create-game");
+    tabAIBtn.addEventListener("click", () => {
+      selectedMode = "ai";
+      tabAIBtn.classList.add("active");
+      tabOnlineBtn.classList.remove("active");
+      multiplayerSection.style.display = "none";
+      computerSection.style.display = "block";
+      joinCardContainer.style.display = "none";
+      actionBtn.textContent = "Start AI Skirmish";
+    });
+
+    // Option picks
+    document.querySelectorAll("#timeControlSelect .pill-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#timeControlSelect .pill-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedTime = btn.dataset.time;
+      });
+    });
+
+    document.querySelectorAll("#difficultySelect .pill-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#difficultySelect .pill-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedAILevel = btn.dataset.level;
+      });
+    });
+
+    document.querySelectorAll("#sideSelect .side-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#sideSelect .side-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedSide = btn.dataset.side;
+      });
+    });
+
+    // FAQ Toggles logic
+    document.querySelectorAll(".faq-item").forEach(item => {
+      const question = item.querySelector(".faq-question");
+      attachAudios([question]);
+      
+      question.addEventListener("click", () => {
+        const isActive = item.classList.contains("active");
+        
+        // Close all first
+        document.querySelectorAll(".faq-item").forEach(i => i.classList.remove("active"));
+        
+        if (!isActive) {
+          item.classList.add("active");
+        }
+      });
+    });
+
+    // FAQ Modal show/hide listeners
+    function openFaq(e) {
+      if (e) e.preventDefault();
+      playSuccessSound();
+      faqModal.style.display = "flex";
+    }
+    
+    function closeFaq() {
+      faqModal.style.display = "none";
+    }
+
+    navFaqLink.addEventListener("click", openFaq);
+    footerFaqLink.addEventListener("click", openFaq);
+    closeFaqBtn.addEventListener("click", closeFaq);
+    
+    // Close modal on background click
+    faqModal.addEventListener("click", (e) => {
+      if (e.target === faqModal) {
+        closeFaq();
+      }
+    });
+
+    // Socket status
+    socket.on("connect", () => {
+      const dot = document.getElementById("lobbyDot");
+      dot.className = "status-dot connected";
+      document.getElementById("lobbyStatus").textContent = "Online";
+      document.getElementById("message").textContent = "";
+    });
+
+    socket.on("disconnect", () => {
+      const dot = document.getElementById("lobbyDot");
+      dot.className = "status-dot";
+      document.getElementById("lobbyStatus").textContent = "Offline";
+    });
+
+    // Main action
+    actionBtn.addEventListener("click", () => {
+      let finalSide = selectedSide;
+      if (selectedSide === "random") {
+        finalSide = Math.random() < 0.5 ? "white" : "black";
+      }
+
+      playSuccessSound();
+
+      setTimeout(() => {
+        if (selectedMode === "ai") {
+          const aiRoomId = "AI_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+          window.location.href = `/game?room=${aiRoomId}&color=${finalSide}&mode=ai&difficulty=${selectedAILevel}`;
+        } else {
+          const timeVal = selectedTime === "0" ? null : parseInt(selectedTime);
+          socket.emit("create-game", { timeLimit: timeVal });
+          
+          sessionStorage.setItem("kingside_preferred_color", finalSide);
+          sessionStorage.setItem("kingside_time_limit", selectedTime);
+        }
+      }, 300); // Small sound play delay before redirect
     });
 
     socket.on("game-created", ({ roomId }) => {
-      window.location.href = `/game?room=${roomId}&color=white`;
+      const preferredColor = sessionStorage.getItem("kingside_preferred_color") || "white";
+      const timeVal = sessionStorage.getItem("kingside_time_limit") || "3";
+      window.location.href = `/game?room=${roomId}&color=${preferredColor}&timeLimit=${timeVal}`;
     });
 
-    document.getElementById("joinBtn").addEventListener("click", () => {
-      const roomId = document.getElementById("roomInput").value.trim();
-      if (!roomId) return alert("Room ID daalo!");
-      socket.emit("join-game", { roomId });
+    joinBtn.addEventListener("click", () => {
+      const roomId = roomInput.value.trim().toUpperCase();
+      if (!roomId) {
+        showError("Please enter a room ID!");
+        return;
+      }
+      playSuccessSound();
+      setTimeout(() => {
+        socket.emit("join-game", { roomId });
+      }, 300);
     });
 
     socket.on("game-joined", ({ roomId }) => {
-      window.location.href = `/game?room=${roomId}&color=black`;
+      window.location.href = `/game?room=${roomId}&color=joiner`;
     });
 
     socket.on("error-message", ({ message }) => {
-      document.getElementById("message").textContent = `❌ ${message}`;
+      showError(message);
     });
+
+    function showError(msg) {
+      const msgEl = document.getElementById("message");
+      msgEl.textContent = `❌ ${msg}`;
+      msgEl.classList.add("shake");
+      setTimeout(() => msgEl.classList.remove("shake"), 500);
+    }
   </script>
 </body>
 </html>
