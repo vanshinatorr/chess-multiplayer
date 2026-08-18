@@ -87,6 +87,7 @@ body {
   grid-template-columns: 290px 1fr 320px;
   height: 100vh;
   gap: 0;
+  overflow: hidden; /* Force layout to fit inside viewport and prevent viewport scroll */
 }
 
 /* Sidebars */
@@ -100,6 +101,9 @@ body {
   padding: 24px 20px;
   gap: 20px;
   box-shadow: var(--glass-shadow);
+  max-height: 100vh;
+  overflow-y: auto; /* Allow sidebars to scroll internally if screen is small */
+  scrollbar-width: thin;
 }
 
 .right-sidebar {
@@ -206,8 +210,9 @@ body {
 
 .player-panel.active-turn {
   border-color: var(--gold-accent);
-  box-shadow: 0 0 20px rgba(226, 177, 60, 0.12), inset 0 0 10px rgba(226, 177, 60, 0.03);
-  background: rgba(226, 177, 60, 0.015);
+  box-shadow: 0 0 24px rgba(226, 177, 60, 0.16), inset 0 0 10px rgba(226, 177, 60, 0.05);
+  background: rgba(226, 177, 60, 0.02);
+  transform: translateY(-2px);
 }
 
 .player-header {
@@ -355,6 +360,8 @@ body {
   align-items: center;
   padding: 20px;
   gap: 16px;
+  height: 100vh;
+  overflow: hidden; /* Force center section to stay centered and never scroll */
 }
 
 .board-header {
@@ -1373,4 +1380,34 @@ body {
   background: rgba(155, 89, 182, 0.12);
   color: #9b59b6;
   border-color: rgba(155, 89, 182, 0.25);
+}
+
+/* Height-based media queries to dynamically scale the board and layout on smaller viewports */
+@media (max-height: 800px) {
+  #board {
+    width: min(65vh, 480px) !important;
+    height: min(65vh, 480px) !important;
+  }
+  .board-section {
+    padding: 10px;
+    gap: 10px;
+  }
+}
+
+@media (max-height: 700px) {
+  #board {
+    width: min(58vh, 400px) !important;
+    height: min(58vh, 400px) !important;
+  }
+  .board-section {
+    padding: 6px;
+    gap: 6px;
+  }
+  .versus-divider {
+    gap: 6px;
+  }
+  .sidebar {
+    padding: 16px 12px;
+    gap: 12px;
+  }
 }

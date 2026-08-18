@@ -329,10 +329,9 @@
       osc.stop(now + 0.5);
     }
 
-    // Attach satisfying audio hover/clicks to controls
+    // Attach satisfying audio clicks to controls
     function attachAudios(elements) {
       elements.forEach(el => {
-        el.addEventListener("mouseenter", playHoverSound);
         el.addEventListener("click", playClickSound);
       });
     }
@@ -360,9 +359,6 @@
     attachAudios(document.querySelectorAll("#sideSelect .side-btn"));
     attachAudios(document.querySelectorAll(".saas-footer a"));
     attachAudios(document.querySelectorAll(".nav-item"));
-    
-    roomInput.addEventListener("focus", playClickSound);
-    roomInput.addEventListener("input", playHoverSound);
 
     // Initialize stats from LocalStorage
     function loadStats() {

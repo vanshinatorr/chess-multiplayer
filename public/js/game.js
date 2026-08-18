@@ -278,12 +278,15 @@ function initPlayerCards() {
 
   const isSpectator = myColor === "spectator";
   const isWhite = myColor === "white";
+  const yourNameEl = document.querySelector("#yourPanel .player-name");
 
   if (isSpectator) {
-    youBadge.textContent = "Spectator (Observing)";
-    oppBadge.textContent = "Multiplayer Arena";
-    youAvatar.textContent = "👁️";
-    oppAvatar.textContent = "⚔️";
+    if (yourNameEl) yourNameEl.textContent = "White Player";
+    opponentName.textContent = "Black Player";
+    youBadge.textContent = "White";
+    oppBadge.textContent = "Black";
+    youAvatar.textContent = "♔";
+    oppAvatar.textContent = "♚";
     yourPanel.className = "player-panel you panel-spectator";
     opponentPanel.className = "player-panel opponent panel-spectator";
     
@@ -292,6 +295,8 @@ function initPlayerCards() {
     resignBtn.style.display = "none";
     boardEl.classList.add("board-disabled");
   } else {
+    if (yourNameEl) yourNameEl.textContent = "You";
+    opponentName.textContent = isAIMode ? "Kingside Engine (AI)" : "Opponent";
     youBadge.textContent = isWhite ? "Playing White" : "Playing Black";
     oppBadge.textContent = isWhite ? "Playing Black" : "Playing White";
     youAvatar.textContent = isWhite ? "♔" : "♚";
@@ -565,7 +570,11 @@ function makeMove(from, to, promotion = undefined) {
   if (!move) return;
 
   // Sound trigger
-  playSound(isCapture ? 'capture' : 'move');
+  if (chess.in_check()) {
+    playSound('check');
+  } else {
+    playSound(isCapture ? 'capture' : 'move');
+  }
 
   lastMove = { from, to };
   selectedSquare = null;
@@ -722,11 +731,25 @@ function startClockTicker() {
       if (chess.turn() === "w") {
         timerW = Math.max(0, timerW - 100);
         updateClockDisplay("white", timerW);
-        if (timerW <= 0) handleLocalGameOver("Defeat by Timeout", "Your clock ran out of time.", false);
+        if (timerW <= 0) {
+          const userWins = myColor === "black";
+          handleLocalGameOver(
+            userWins ? "Victory by Timeout" : "Defeat by Timeout",
+            userWins ? "AI clock ran out of time!" : "Your clock ran out of time.",
+            userWins
+          );
+        }
       } else {
         timerB = Math.max(0, timerB - 100);
         updateClockDisplay("black", timerB);
-        if (timerB <= 0) handleLocalGameOver("Victory by Timeout", "AI clock ran out of time.", true);
+        if (timerB <= 0) {
+          const userWins = myColor === "white";
+          handleLocalGameOver(
+            userWins ? "Victory by Timeout" : "Defeat by Timeout",
+            userWins ? "AI clock ran out of time!" : "Your clock ran out of time.",
+            userWins
+          );
+        }
       }
     } else {
       // Multiplayer clocks ticker
@@ -836,13 +859,17 @@ function updateCapturedPieces() {
   const oppCapEl = isWhitePlayer ? opponentCapturedEl : yourCapturedEl;
 
   if (yourCapEl) {
-    yourCapEl.innerHTML = (isWhitePlayer ? captured.b : captured.w)
+    const list = isWhitePlayer ? captured.b : captured.w;
+    yourCapEl.innerHTML = list
       .map(type => `<span class="captured-avatar">${pieceAvatars[type]}</span>`).join("");
+    yourCapEl.style.display = list.length > 0 ? "flex" : "none";
   }
 
   if (oppCapEl) {
-    oppCapEl.innerHTML = (isWhitePlayer ? captured.w : captured.b)
+    const list = isWhitePlayer ? captured.w : captured.b;
+    oppCapEl.innerHTML = list
       .map(type => `<span class="captured-avatar" style="opacity: 0.6;">${pieceAvatars[type]}</span>`).join("");
+    oppCapEl.style.display = list.length > 0 ? "flex" : "none";
   }
 
   // Material balance display
@@ -943,7 +970,6 @@ function checkGameEndState() {
   } else if (chess.in_draw()) {
     socket.emit("game-ended", { roomId, reason: "draw", winner: null });
   } else if (chess.in_check()) {
-    playSound('check');
     gameStatusEl.textContent = "Check!";
     gameStatusEl.classList.add("active");
   } else {
@@ -968,7 +994,6 @@ function checkLocalGameEnd() {
     handleLocalGameOver("Draw", "The practice skirmish ended in a draw.", null);
     return true;
   } else if (chess.in_check()) {
-    playSound('check');
     gameStatusEl.textContent = "Check!";
     gameStatusEl.classList.add("active");
   } else {
@@ -1212,7 +1237,11 @@ function makeAIMove() {
       const isCapture = chess.get(to) !== null;
       chess.move(bestMove);
 
-      playSound(isCapture ? 'capture' : 'move');
+      if (chess.in_check()) {
+        playSound('check');
+      } else {
+        playSound(isCapture ? 'capture' : 'move');
+      }
       lastMove = { from, to };
 
       // Update history caches
@@ -1386,18 +1415,23 @@ function evaluateBoard(board) {
 function getPieceValue(piece, r, c) {
   if (piece === null) return 0;
   
+  // Positional evaluation tables are from White's perspective.
+  // For Black pieces, flip the row index to evaluate position relative to Black's side.
+  const evalRow = piece.color === 'w' ? r : 7 - r;
+  
   let val = 0;
   if (piece.type === 'p') {
-    val = 10 + pawnEval[r][c];
+    val = 10 + pawnEval[evalRow][c];
   } else if (piece.type === 'r') {
-    val = 50 + rookEval[r][c];
+    val = 50 + rookEval[evalRow][c];
   } else if (piece.type === 'n') {
-    val = 30 + knightEval[r][c];
+    val = 30 + knightEval[evalRow][c];
   } else if (piece.type === 'b') {
-    val = 30 + bishopEval[r][c];
+    val = 30 + bishopEval[evalRow][c];
   } else if (piece.type === 'q') {
-    val = 90 + queenEval[r][c];
+    val = 90 + queenEval[evalRow][c];
   } else if (piece.type === 'k') {
+    // kingEvalBlack is already defined as reversed [...kingEvalWhite].reverse()
     val = 900 + (piece.color === 'w' ? kingEvalWhite[r][c] : kingEvalBlack[r][c]);
   }
   
