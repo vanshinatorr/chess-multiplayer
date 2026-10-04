@@ -188,7 +188,7 @@ public class GameWebSocketController extends TextWebSocketHandler {
         // Check if this is a reconnecting player
         if (!"spectator".equalsIgnoreCase(resolvedRole)) {
             Player existingPlayer = game.findPlayerByColor(resolvedRole);
-            if (existingPlayer != null) {
+            if (existingPlayer != null && game.getDisconnectTimers().containsKey(existingPlayer.getId())) {
                 String oldSessionId = existingPlayer.getId();
                 existingPlayer.setId(session.getId());
 
@@ -199,7 +199,7 @@ public class GameWebSocketController extends TextWebSocketHandler {
                 }
 
                 // Send complete current game state snapshot to reconnected player
-                GameState snapshot = game.toSnapshot();
+                GameState snapshot = game.toSnapshot(resolvedRole);
                 sendMessage(session, "reconnected-state", snapshot);
 
                 // Notify other player in room
@@ -212,7 +212,7 @@ public class GameWebSocketController extends TextWebSocketHandler {
         if ("spectator".equalsIgnoreCase(resolvedRole) || game.getPlayers().size() >= 2) {
             logger.info("👁️ User joined as spectator in room {}: session {}", roomId, session.getId());
             game.addPlayer(session.getId(), "spectator");
-            GameState snapshot = game.toSnapshot();
+            GameState snapshot = game.toSnapshot("spectator");
             sendMessage(session, "reconnected-state", snapshot);
             return;
         }

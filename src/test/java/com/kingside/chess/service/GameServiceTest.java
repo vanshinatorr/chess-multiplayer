@@ -72,6 +72,18 @@ class GameServiceTest {
     }
 
     @Test
+    @DisplayName("Should prevent session hijacking when joining with already occupied color link")
+    void testRoleResolutionWithOccupiedLink() {
+        GameRoom room = gameService.createGame("ROOM_LINK", 3);
+        room.addPlayer("sess_p1", "white");
+
+        // Player 2 opens shared URL that has ?color=white
+        // Since White is active and NOT in disconnect grace period, Player 2 is assigned "black"
+        String role = gameService.resolvePlayerRole(room, "white");
+        assertEquals("black", role, "Should safely fall back to Black instead of hijacking White");
+    }
+
+    @Test
     @DisplayName("Should strictly enforce server-side turn validation")
     void testServerSideTurnManagement() {
         GameRoom room = gameService.createGame("ROOM03", 10);
@@ -82,25 +94,62 @@ class GameServiceTest {
         Move whiteMove = new Move("e2", "e4", "p", null, null, "e4");
         Move blackMove = new Move("e7", "e5", "p", null, null, "e5");
 
+        String postWhiteFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
+        String postBlackFen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2";
+
         // 1. Black attempts to move while it's White's turn -> REJECTED
-        boolean blackEarlyMoveAccepted = gameService.processMove(room, "sess_black", blackMove, "fen_black");
+        boolean blackEarlyMoveAccepted = gameService.processMove(room, "sess_black", blackMove, postBlackFen);
         assertFalse(blackEarlyMoveAccepted, "Black must not be allowed to move when it is White's turn.");
         assertEquals("w", room.getCurrentTurn());
 
         // 2. White moves on their turn -> ACCEPTED
-        boolean whiteMoveAccepted = gameService.processMove(room, "sess_white", whiteMove, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+        boolean whiteMoveAccepted = gameService.processMove(room, "sess_white", whiteMove, postWhiteFen);
         assertTrue(whiteMoveAccepted, "White's legal move on White's turn must be accepted.");
         assertEquals("b", room.getCurrentTurn(), "Turn must switch to Black after White's move.");
 
         // 3. White attempts to move again out of turn -> REJECTED
-        boolean whiteSecondMoveAccepted = gameService.processMove(room, "sess_white", whiteMove, "fen_white_again");
+        boolean whiteSecondMoveAccepted = gameService.processMove(room, "sess_white", whiteMove, postWhiteFen);
         assertFalse(whiteSecondMoveAccepted, "White must not be allowed to move consecutively.");
         assertEquals("b", room.getCurrentTurn());
 
         // 4. Black moves on Black's turn -> ACCEPTED
-        boolean blackMoveAccepted = gameService.processMove(room, "sess_black", blackMove, "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2");
+        boolean blackMoveAccepted = gameService.processMove(room, "sess_black", blackMove, postBlackFen);
         assertTrue(blackMoveAccepted, "Black's legal move on Black's turn must be accepted.");
         assertEquals("w", room.getCurrentTurn(), "Turn must switch back to White after Black's move.");
+    }
+
+    @Test
+    @DisplayName("Should reject moves with invalid coordinates or malformed FEN")
+    void testMoveAndFenSanityValidation() {
+        GameRoom room = gameService.createGame("ROOM_VAL", 5);
+        room.addPlayer("sess_white", "white");
+        room.addPlayer("sess_black", "black");
+        room.setGameStarted(true);
+
+        // Invalid source/target coordinates
+        Move badMove1 = new Move("z9", "e4", "p", null, null, "e4");
+        assertFalse(gameService.isValidMoveCoordinates(badMove1));
+
+        Move sameSquare = new Move("e2", "e2", "p", null, null, "e2");
+        assertFalse(gameService.isValidMoveCoordinates(sameSquare));
+
+        Move validMove = new Move("e2", "e4", "p", null, null, "e4");
+        assertTrue(gameService.isValidMoveCoordinates(validMove));
+
+        // Malformed FEN: missing fields
+        assertFalse(gameService.isValidFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR", "w"));
+
+        // Malformed FEN: wrong next-turn indicator (White just moved, so next turn must be 'b', but FEN says 'w')
+        String inconsistentTurnFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e3 0 1";
+        assertFalse(gameService.isValidFen(inconsistentTurnFen, "w"));
+
+        // Malformed FEN: missing King
+        String missingKingFen = "rnbq1bnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQ1BNR b KQkq e3 0 1";
+        assertFalse(gameService.isValidFen(missingKingFen, "w"));
+
+        // Valid FEN after White move
+        String validFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
+        assertTrue(gameService.isValidFen(validFen, "w"));
     }
 
     @Test
@@ -113,7 +162,7 @@ class GameServiceTest {
         room.setGameStarted(true);
 
         Move specMove = new Move("e2", "e4", "p", null, null, "e4");
-        boolean accepted = gameService.processMove(room, "sess_spec", specMove, "fen_spec");
+        boolean accepted = gameService.processMove(room, "sess_spec", specMove, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
         assertFalse(accepted, "Spectators cannot make moves.");
     }
 

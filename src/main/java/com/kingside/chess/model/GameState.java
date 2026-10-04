@@ -4,10 +4,11 @@ import java.util.List;
 
 /**
  * Encapsulates the complete snapshot of a game's state at any point in time.
- * Used for client synchronization upon connection, reconnection, or state recovery.
+ * Used for client synchronization upon connection, reconnection, or spectator entry.
  */
 public class GameState {
     private String roomId;
+    private String color;       // Assigned color/role for the recipient player ("white", "black", "spectator")
     private String fen;
     private String currentTurn; // "w" for White, "b" for Black
     private Long timerW;        // Remaining milliseconds for White
@@ -20,10 +21,11 @@ public class GameState {
 
     public GameState() {}
 
-    public GameState(String roomId, String fen, String currentTurn, Long timerW, Long timerB,
+    public GameState(String roomId, String color, String fen, String currentTurn, Long timerW, Long timerB,
                      Integer timeLimit, boolean gameStarted, boolean gameOver,
                      List<Player> players, List<ChatMessage> chatHistory) {
         this.roomId = roomId;
+        this.color = color;
         this.fen = fen;
         this.currentTurn = currentTurn;
         this.timerW = timerW;
@@ -41,6 +43,14 @@ public class GameState {
 
     public void setRoomId(String roomId) {
         this.roomId = roomId;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 
     public String getFen() {

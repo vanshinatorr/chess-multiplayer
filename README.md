@@ -5,18 +5,28 @@ Multiplayer Chess Platform is a lightweight, real-time multiplayer chess applica
 
 The platform was designed with an interview-first philosophy, prioritizing clean separation of concerns, readable architecture, and thread-safe in-memory state management. By replacing traditional HTTP polling with full-duplex WebSocket communication, players experience instant move broadcasts, live clock synchronization, in-game chat, and an automated reconnection grace window without external dependencies like databases or message brokers.
 
-All game rooms, player sessions, and clocks are managed in-memory on the Spring Boot server using concurrent data structures (`ConcurrentHashMap`, `CopyOnWriteArrayList`), while the browser interface utilizes native HTML5, modern CSS, and JavaScript.
+All active game rooms, player sessions, and clocks are managed in-memory on the Spring Boot server using concurrent data structures (`ConcurrentHashMap`, `CopyOnWriteArrayList`). Active games are intentionally kept in-memory for this minor project to remain lightweight, clean, and easy to explain.
 
 ## Features
 - **Real-Time Multiplayer Chess**: Instant bidirectional move and game event transmission over WebSocket.
 - **Room-Based Matchmaking**: Players can generate custom rooms with configurable clock controls (Blitz, Rapid, Classical, Unlimited) or join an existing room with a 6-digit code.
-- **White / Black Player Assignment**: Automatic or preference-based color resolution ensuring one White player and one Black player per match.
-- **Server-Side Turn Management**: Strict server validation preventing out-of-turn moves, consecutive moves, or moves from non-participating spectators.
+- **White / Black Player Assignment**: Automatic or preference-based color resolution ensuring one White player and one Black player per match, with safe fallback preventing session hijacking.
+- **Server-Side Turn & Move Integrity Validation**: Strict server validation preventing out-of-turn moves, consecutive moves, invalid board coordinates, or moves from non-participating spectators.
 - **In-Memory Game State**: Rooms maintain board FEN, active turns, move timestamps, player session mappings, and chat history.
 - **Server-Side Game Timers**: Dedicated timer scheduler decrements only the active player's clock, broadcasts periodic time synchronizations, and automatically awards the win on timeout flag.
 - **Real-Time WebSocket Synchronization**: Game state, move updates, clocks, chat messages, resignations, draw agreements, and rematches are broadcast in real time.
 - **Disconnect / Reconnect Support**: 30-second grace window when a player loses connection; if the player returns within 30 seconds, their full state and clocks are restored seamlessly. If the window expires, the game is forfeited to the opponent.
 - **Spectator Support**: Users joining an active room after both player slots are filled enter as spectators to watch moves and participate in chat.
+
+## Note on Architecture & Validation Scope
+To keep this minor project interview-friendly, clean, and honest:
+- **State Storage**: Games are stored strictly **in-memory** in `GameManager` using thread-safe `ConcurrentHashMap`. No database, JPA, or Redis caching is required or claimed.
+- **Move Validation**: Legal chess move generation, piece pinning, and checkmate detection are handled client-side using `chess.js`. The Spring Boot backend enforces:
+  1. Active player turn ownership (`isPlayerTurn`), rejecting out-of-turn or spectator moves.
+  2. Move coordinate validity (`^[a-h][1-8]$`, differing source and target).
+  3. FEN notation integrity (6 standard tokens, 8 ranks, preservation of both Kings, and next-turn parity).
+  4. Timer elapsed deductions and turn switching.
+- **Authentication**: Matches rely on room codes and WebSocket session IDs rather than JWT/Spring Security to avoid unnecessary enterprise complexity.
 
 ## Tech Stack
 - **Java**: Java 17+ (LTS)
@@ -24,7 +34,7 @@ All game rooms, player sessions, and clocks are managed in-memory on the Spring 
 - **WebSocket**: Spring WebSocket with native WebSocket protocol
 - **Maven**: Dependency and build management
 - **HTML**: HTML5 semantic markup
-- **CSS**: Vanilla CSS with custom design system and glassmorphism styling
+- **CSS**: Vanilla CSS with custom design system and dark theme styling
 - **JavaScript**: Vanilla ES6 JavaScript with native WebSocket adapter (`socket-adapter.js`) and `chess.js` client rule helper
 
 ## Architecture
@@ -54,7 +64,7 @@ In-Memory Game State (ConcurrentHashMap<String, GameRoom>)
 ### Component Responsibilities
 - **`config/WebSocketConfig.java`**: Configures the WebSocket registry, registers the `/ws` endpoint, and configures cross-origin permissions.
 - **`controller/GameWebSocketController.java`**: Manages active `WebSocketSession` connections, unmarshals incoming JSON events, routes actions, and provides broadcast/unicast messaging helpers.
-- **`service/GameService.java`**: Implements core business logic—room generation, matchmaking, server-side turn validation, moves, chat, resignations, draws, rematches, and disconnection grace handling.
+- **`service/GameService.java`**: Implements core business logic—room generation, matchmaking, server-side turn validation, move coordinate checks, FEN integrity checks, chat, resignations, draws, rematches, and disconnection grace handling.
 - **`service/GameTimerService.java`**: Operates background thread-pool scheduled executors to decrement active player clocks, emit periodic synchronization pulses, and detect timeouts.
 - **`manager/GameManager.java`**: Thread-safe registry maintaining all active `GameRoom` instances using `ConcurrentHashMap`.
 - **`model/`**: Clean domain entities:
@@ -79,7 +89,7 @@ Start Game
 Player Move
     ↓ (Client sends move-made event to server)
 Server Update
-    ↓ (Server verifies player turn, updates FEN, updates clocks, switches turn)
+    ↓ (Server verifies player turn, move coordinates & FEN integrity, updates clocks, switches turn)
 Broadcast State
     ↓ (Server sends move-update event to opponent and spectators)
 Timer Update
@@ -132,7 +142,7 @@ chess-multiplayer/
             ├── ChessApplicationTests.java          # Context loading test
             ├── manager/GameManagerTest.java        # Room management tests
             └── service/
-                ├── GameServiceTest.java            # Turn enforcement & matchmaking tests
+                ├── GameServiceTest.java            # Turn enforcement, validation & matchmaking tests
                 └── GameTimerServiceTest.java       # Clock ticking & flag tests
 ```
 
@@ -215,8 +225,8 @@ Client and server communicate via a standard WebSocket connection at `ws://local
 | `game-over` | `{ "reason": "timeout|resign|checkmate|abandoned", "winner": "white" }` | Broadcast final match outcome and stop clocks |
 
 ## Future Improvements
-- **Persistent Game History**: Integrate Spring Data JPA / PostgreSQL to persist user game histories and PGN notation.
-- **User Authentication**: Implement Spring Security with JWT tokens for persistent user profiles and ELO ratings.
-- **Distributed State with Redis**: Transition `GameManager` in-memory maps to Redis Hash structures and Pub/Sub to allow horizontal scaling across multiple Spring Boot nodes.
-- **Full Server-Side Chess Engine**: Integrate a Java chess rule engine (such as `bhlangonijr/chesslib`) on the backend to validate move legality on the server independent of client-side validation.
+- **Persistent Game History**: Integrate Spring Data JPA / PostgreSQL to persist user game histories and PGN notation across server restarts.
+- **User Authentication**: Implement Spring Security with JWT tokens for user profiles, rating records, and game statistics.
+- **Distributed State with Redis**: Transition `GameManager` in-memory maps to Redis Hash structures and Pub/Sub to allow horizontal scaling across multiple Spring Boot instances.
+- **Full Server-Side Chess Engine**: Integrate a Java chess rule engine (such as `chesslib`) on the backend to validate move legality on the server independent of client-side validation.
 - **WebSocket Clustering**: Use STOMP with a shared RabbitMQ or Redis message broker for cross-node player matchmaking.

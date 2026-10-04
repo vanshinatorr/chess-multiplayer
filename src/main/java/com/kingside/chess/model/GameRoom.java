@@ -81,8 +81,13 @@ public class GameRoom {
     }
 
     public GameState toSnapshot() {
+        return toSnapshot(null);
+    }
+
+    public GameState toSnapshot(String recipientColor) {
         return new GameState(
                 roomId,
+                recipientColor,
                 fen,
                 currentTurn,
                 timerW,

@@ -11,16 +11,18 @@ import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 
 /**
  * Core business logic service for chess gameplay, matchmaking, turn validation,
- * and game state transitions.
+ * board state integrity verification, and game transitions.
  */
 @Service
 public class GameService {
     private static final Logger logger = LoggerFactory.getLogger(GameService.class);
     private static final String ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Pattern SQUARE_PATTERN = Pattern.compile("^[a-h][1-8]$");
 
     private final GameManager gameManager;
     private final GameTimerService timerService;
@@ -70,25 +72,52 @@ public class GameService {
 
     /**
      * Resolves player role assignment: White, Black, Spectator, or Reconnection.
+     * Prevents session hijacking when a shared link contains ?color=white.
      */
     public String resolvePlayerRole(GameRoom game, String requestedColor) {
-        if (game.getPlayers().size() >= 2 && "joiner".equalsIgnoreCase(requestedColor)) {
-            return "spectator";
-        }
         if ("joiner".equalsIgnoreCase(requestedColor)) {
             if (game.getPlayers().isEmpty()) {
                 return "white";
-            } else {
-                String firstColor = game.getPlayers().get(0).getColor();
-                return "white".equalsIgnoreCase(firstColor) ? "black" : "white";
             }
+            Player whitePlayer = game.findPlayerByColor("white");
+            Player blackPlayer = game.findPlayerByColor("black");
+            if (whitePlayer == null) return "white";
+            if (blackPlayer == null) return "black";
+            return "spectator";
         }
-        return requestedColor != null ? requestedColor.toLowerCase() : "white";
+
+        String color = requestedColor != null ? requestedColor.toLowerCase() : "white";
+        Player existingPlayer = game.findPlayerByColor(color);
+
+        // If no player has this color yet, grant it
+        if (existingPlayer == null) {
+            return color;
+        }
+
+        // If player with this color exists, check if they are disconnected (reconnection eligible)
+        boolean isDisconnected = game.getDisconnectTimers().containsKey(existingPlayer.getId());
+        if (isDisconnected) {
+            return color;
+        }
+
+        // Color is actively occupied by a connected player. Assign the remaining color if free.
+        String oppositeColor = "white".equals(color) ? "black" : "white";
+        if (game.findPlayerByColor(oppositeColor) == null) {
+            return oppositeColor;
+        }
+
+        // Both White and Black slots are filled and active -> Spectator
+        return "spectator";
     }
 
     /**
      * Validates and processes a chess move submitted by a player.
-     * Enforces server-side turn validation: players can only move on their assigned turn.
+     * Enforces:
+     * 1. Game state must be active.
+     * 2. Sender must be an active playing participant (not spectator).
+     * 3. Server-side turn ownership: only the player whose turn it is can move.
+     * 4. Move coordinate sanity: source and destination must be valid chess squares.
+     * 5. FEN integrity: validates structure, preserves kings, and verifies expected next-turn token.
      *
      * @return true if move was accepted and applied, false if rejected
      */
@@ -104,10 +133,22 @@ public class GameService {
             return false;
         }
 
-        // Server-side turn management validation
+        // 1. Strict server-side turn validation
         if (!game.isPlayerTurn(player)) {
             logger.warn("Move rejected: Turn violation! Current turn is {}, but player {} attempted to move.",
                     game.getCurrentTurn(), player.getColor());
+            return false;
+        }
+
+        // 2. Validate move coordinates (from/to squares must be valid algebraic chess coordinates)
+        if (!isValidMoveCoordinates(move)) {
+            logger.warn("Move rejected: Invalid move coordinates in room {}: {}", game.getRoomId(), move);
+            return false;
+        }
+
+        // 3. Validate FEN structure and turn consistency
+        if (!isValidFen(fen, game.getCurrentTurn())) {
+            logger.warn("Move rejected: Invalid or inconsistent FEN supplied in room {}: {}", game.getRoomId(), fen);
             return false;
         }
 
@@ -128,6 +169,60 @@ public class GameService {
         game.setFen(fen);
         game.switchTurn();
         logger.info("♟️ Move accepted in room {}. Turn switched to {}", game.getRoomId(), game.getCurrentTurn());
+        return true;
+    }
+
+    /**
+     * Validates that the move coordinates represent valid chess squares on an 8x8 board.
+     */
+    public boolean isValidMoveCoordinates(Move move) {
+        if (move == null) return false;
+        String from = move.getFrom();
+        String to = move.getTo();
+        if (from == null || to == null) return false;
+
+        from = from.trim().toLowerCase();
+        to = to.trim().toLowerCase();
+
+        if (from.equals(to)) return false;
+        return SQUARE_PATTERN.matcher(from).matches() && SQUARE_PATTERN.matcher(to).matches();
+    }
+
+    /**
+     * Validates that the FEN string adheres to standard chess notation rules:
+     * - 6 space-delimited tokens
+     * - 8 ranks on board
+     * - Both Kings are preserved on the board
+     * - Next-turn token matches the expected next player ('b' after White moves, 'w' after Black moves)
+     */
+    public boolean isValidFen(String fen, String currentTurn) {
+        if (fen == null || fen.trim().isEmpty()) return false;
+
+        String[] parts = fen.trim().split("\\s+");
+        if (parts.length != 6) return false;
+
+        String boardPlacement = parts[0];
+        String nextTurn = parts[1];
+
+        // Must have 8 board ranks
+        String[] ranks = boardPlacement.split("/");
+        if (ranks.length != 8) return false;
+
+        // Must preserve both White King ('K') and Black King ('k')
+        if (boardPlacement.indexOf('K') == -1 || boardPlacement.indexOf('k') == -1) {
+            return false;
+        }
+
+        // Next-turn token in FEN must reflect who moves NEXT:
+        // After White moves ("w"), next turn must be 'b'
+        // After Black moves ("b"), next turn must be 'w'
+        if ("w".equalsIgnoreCase(currentTurn) && !"b".equals(nextTurn)) {
+            return false;
+        }
+        if ("b".equalsIgnoreCase(currentTurn) && !"w".equals(nextTurn)) {
+            return false;
+        }
+
         return true;
     }
 
