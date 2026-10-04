@@ -1,2 +1,16 @@
-node_modules
+target/
+*.class
+*.jar
+*.war
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# OS files
 .DS_Store
+Thumbs.db
